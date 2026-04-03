@@ -19,6 +19,7 @@ export default function ChatbotFace({ onOpenFullChat }: ChatbotFaceProps) {
   const [quickMessage, setQuickMessage] = useState("");
   const [quickResponse, setQuickResponse] = useState("Xin chào 💖 Mình là XinhLao đây~");
   const [emotion, setEmotion] = useState<Emotion>("neutral");
+  const [hasGreeted, setHasGreeted] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -26,15 +27,11 @@ export default function ChatbotFace({ onOpenFullChat }: ChatbotFaceProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Speak initial greeting after a short delay
-    const timer = setTimeout(() => {
+    if (open && !hasGreeted) {
       playVoice(quickResponse);
-    }, 1500);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
+      setHasGreeted(true);
+    }
+  }, [open, hasGreeted, quickResponse]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -68,7 +65,9 @@ export default function ChatbotFace({ onOpenFullChat }: ChatbotFaceProps) {
       const audioUrl = await geminiService.generateTTS(text, 'Zephyr');
       if (audioUrl) {
         const audio = new Audio(audioUrl);
-        audio.play();
+        audio.play().catch(err => {
+          console.warn("Audio play failed (likely due to user interaction policy):", err);
+        });
       }
     } catch (error) {
       console.error("TTS Error:", error);

@@ -242,6 +242,28 @@ interface ConsultationForm {
   isSubmitting: boolean;
 }
 
+// Image Modal for viewing cover
+const ImageModal: React.FC<{ isOpen: boolean, imageUrl: string | null, onClose: () => void }> = ({ isOpen, imageUrl, onClose }) => {
+  if (!isOpen || !imageUrl) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative max-w-4xl w-full flex flex-col items-center"
+      >
+        <button 
+          onClick={onClose}
+          className="absolute -top-12 right-0 p-2 text-white/60 hover:text-white transition-colors"
+        >
+          <X className="w-8 h-8" />
+        </button>
+        <img src={imageUrl} className="w-full h-auto rounded-2xl shadow-2xl border border-white/10" alt="Podcast Cover" />
+      </motion.div>
+    </div>
+  );
+};
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -294,6 +316,7 @@ function AppContent() {
   const [isRecording, setIsRecording] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean;
@@ -635,6 +658,22 @@ function AppContent() {
       setBookState(prev => ({ ...prev, isGeneratingCover: false }));
       toast.error('Không thể tạo bìa podcast.');
     }
+  };
+
+  const handleDownloadCover = () => {
+    if (!bookState.podcastCover) return;
+    const link = document.createElement('a');
+    link.href = bookState.podcastCover;
+    link.download = `podcast-cover-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Đang tải ảnh bìa xuống...');
+  };
+
+  const handleEditOnCanva = () => {
+    window.open('https://www.canva.com/', '_blank');
+    toast.info('Đang mở Canva để bạn chỉnh sửa...');
   };
 
   const handleCaptionUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1311,6 +1350,49 @@ function AppContent() {
                             </div>
                           </div>
                         </div>
+
+                        {bookState.podcastCover && (
+                          <div className="mt-8 p-6 rounded-[18px] bg-white/5 border border-white/5 space-y-6">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-bold uppercase tracking-widest text-white/60">Ảnh bìa Podcast đã tạo</h4>
+                              <div className="flex gap-3">
+                                <button 
+                                  onClick={() => setIsImageModalOpen(true)}
+                                  className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all"
+                                >
+                                  <Search className="w-3.5 h-3.5" />
+                                  Xem ảnh
+                                </button>
+                                <button 
+                                  onClick={handleDownloadCover}
+                                  className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  Tải xuống
+                                </button>
+                                <button 
+                                  onClick={handleEditOnCanva}
+                                  className="px-4 py-2 bg-primary/20 text-primary border border-primary/20 hover:bg-primary/30 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all"
+                                >
+                                  <Palette className="w-3.5 h-3.5" />
+                                  Chỉnh sửa trên Canva
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex justify-center">
+                              <div className="relative group cursor-pointer" onClick={() => setIsImageModalOpen(true)}>
+                                <img 
+                                  src={bookState.podcastCover} 
+                                  className="w-64 aspect-square object-cover rounded-xl shadow-2xl border border-white/10 transition-transform group-hover:scale-[1.02]" 
+                                  alt="Podcast Cover" 
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                                  <Search className="w-8 h-8 text-white" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </section>
 
@@ -2047,7 +2129,13 @@ function AppContent() {
         )}
       </AnimatePresence>
 
-      <Toaster position="top-center" richColors />
+      <ImageModal 
+        isOpen={isImageModalOpen} 
+        imageUrl={bookState.podcastCover} 
+        onClose={() => setIsImageModalOpen(false)} 
+      />
+
+      <Toaster position="top-right" richColors theme="dark" />
       <ConfirmModal 
         isOpen={confirmConfig.isOpen}
         title={confirmConfig.title}
